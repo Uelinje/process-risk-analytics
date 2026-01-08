@@ -1,0 +1,202 @@
+#!pip install kaggle
+
+#importing the zip fine into the notebook
+
+import zipfile
+
+zip_path = r"C:\Ujwal\RIL\Data set\Corporate process analytics\data\raw\Semiconductor manufacturing.zip"
+extract_path = r"C:\Ujwal\RIL\Data set\Corporate process analytics\data\raw"
+
+with zipfile.ZipFile(zip_path, 'r') as zip_ref:
+    zip_ref.extractall(extract_path)
+
+print("Extraction completed")
+
+
+#to check which csv files exist in the zip
+
+import os
+
+extract_path = r"C:\Ujwal\RIL\Data set\Corporate process analytics\data\raw"
+os.listdir(extract_path)
+
+import pandas as pd
+
+file_path = r"C:\Ujwal\RIL\Data set\Corporate process analytics\data\raw\signal-data.csv"
+
+df = pd.read_csv(file_path)
+
+df.head()
+
+
+df.info()
+df.shape
+df.columns
+
+#separate identifiers, features and targets
+#identify key columns
+
+id_col = "Time"
+target_col = "Pass/Fail"
+
+#feature columns = everything except id and target
+feature_cols = [col for col in df.columns if col not in [id_col, target_col]]
+
+len(feature_cols)
+
+#understand the outcome variable
+df[target_col].value_counts()
+
+
+
+df[target_col].value_counts(normalize = True)*100
+
+#Fail: 93.36% and Pass: 6.63%, so this is a highly imbalanced data set.
+
+
+#find missing values
+df.isna().sum().sum()
+
+total missing values is 41951 across 590 columns. We must use controlled explainable strategy (not blanket drop)
+
+df.duplicated().sum()
+
+Cleaning the data
+Phase 1: Remove useless features (zero/near zero variation)
+
+import numpy as np
+
+#calculate variance for numeric features
+
+variances = df[feature_cols].var()
+
+#identify zero variance feature
+
+zero_var_cols = variances[variances == 0].index.tolist()
+
+len(zero_var_cols)
+
+#drop these columns
+df = df.drop(columns = zero_var_cols)
+
+Phase 2: Handle missing values
+
+#% missing per column
+missing_pct = df.isna().mean() * 100
+
+missing_pct.sort_values(ascending = False).head(10)
+
+
+#drop columns with > 30% missing values
+#Impute remaining missing values with median
+
+cols_to_exclude = [id_col, target_col]
+
+high_missing_cols = (missing_pct.drop(labels = cols_to_exclude, errors = 'ignore'))[missing_pct > 30].index
+
+df = df.drop(columns = high_missing_cols, errors = 'ignore')
+
+#median imputation
+df = df.fillna(df.median(numeric_only = True))
+
+#this avoids aggressive data loss
+
+Phase 3 Sanity Check
+
+df.shape
+df.isna().sum().sum()
+
+Cleaning complete
+
+Reframe targets to corporate metrics 1:pass, -1:fail
+
+df["failure_flag"]= (df[target_col]==-1).astype(int)
+
+
+#calculate overall failure rate
+
+failure_rate = df["failure_flag"].mean()*100
+failure_rate
+
+yield_pct = 100 - failure_rate
+yield_pct
+
+The process is high-risk
+
+Failures dominate outcomes
+
+Any reduction in failure has massive business impact
+
+#compare failure vs pass population
+#create two groups
+
+df_fail = df[df['failure_flag']==1]
+df_pass = df[df['failure_flag']==0]
+
+df_fail.shape
+df_pass.shape
+
+df_fail.shape
+
+#this scale shows the imbalance clearly
+
+#redefine feature cols after data cleaning
+
+feature_cols = [col for col in df.columns
+               if col not in [id_col, target_col, "failure_flag"]]
+
+len(feature_cols)
+
+set(feature_cols).issubset(df.columns)
+
+#variability comparison, do failed test cases show higher variability
+
+fail_std_mean = df_fail[feature_cols].std().mean()
+pass_std_mean = df_pass[feature_cols].std().mean()
+
+fail_std_mean, pass_std_mean
+
+#always better to regenerate feature list after preprocessing to prevent stale column references
+
+Failed cases show higher average variability than passed cases
+The difference is consistent not random
+This strongly suggests
+    Failures are associated with process instability not just bad averages
+    
+
+#identify top risk drivers, which features contribute the most to failure risk
+
+mean_diff = (df_fail[feature_cols].mean() - df_pass[feature_cols].mean()).abs()
+
+top_features = mean_diff.sort_values(ascending = False).head(10)
+
+top_features
+
+#visualization
+
+import matplotlib.pyplot as plt
+
+top_features.plot(kind='bar', figsize = (10,5))
+plt.title("Top feature differences between failed and passed cases")
+
+plt.ylabel("Absolute mean difference")
+
+plt.tight_layout()
+plt.show()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
