@@ -100,6 +100,7 @@ Technical labels were translated into **corporate metrics**:
 - Integration with enterprise BI tools
 
 ---
+> Note: A lightweight logistic regression model was added as a validation step to support exploratory insights. The project intentionally prioritizes interpretability over predictive optimization.
 
 ## 📎 Author Note
 This project is designed to demonstrate **corporate-ready analytics thinking**, combining process understanding with data-driven decision support.
