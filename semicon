@@ -184,6 +184,55 @@ plt.ylabel("Absolute mean difference")
 plt.tight_layout()
 plt.show()
 
+from sklearn.model_selection import train_test_split
+
+x = df[feature_cols]
+y = df["failure_flag"]
+
+
+from sklearn.model_selection import train_test_split
+​
+x = df[feature_cols]
+y = df["failure_flag"]
+​
+​
+#train_test_split stratified
+​
+X_train, X_test, y_train, y_test = train_test_split(x, y, test_size = 0.25, stratify = y, random_state =42)
+​
+#feature scaling required for logistic regression
+​
+from sklearn.preprocessing import StandardScaler
+​
+scaler = StandardScaler()
+​
+X_train_scaled = scaler.fit_transform(X_train)
+X_test_scaled = scaler.transform(X_test)
+l
+#fit logistic regression
+​
+from sklearn.linear_model import LogisticRegression
+​
+log_reg = LogisticRegression(max_iter = 1000, class_weight = 'balanced', solver = 'lbfgs')
+​
+log_reg.fit(X_train_scaled, y_train)
+
+LogisticRegression
+LogisticRegression(class_weight='balanced', max_iter=1000)
+y_pred = log_reg.predict(X_test_scaled)
+#view confusion matrix
+​
+from sklearn.metrics import confusion_matrix
+confusion_matrix(y_test, y_pred)
+F
+#extract coefficients
+​
+coef_df = pd.DataFrame({"feature": feature_cols,
+                       "coefficient": log_reg.coef_[0]}).assign(abs_coef = lambda d: d.coefficient.abs())
+​
+coef_df.sort_values("abs_coef", ascending = False).head(10)
+​
+Logistic regression coefficients indicate that a small subset of features has a strong directional association with failure risk. Both risk-increasing and risk-reducing features were identified, reinforcing the presence of concentrated and interpretable drivers rather than diffuse effects across all variables.
 
 
 
